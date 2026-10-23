@@ -1,0 +1,805 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Transposição por Quadros</title>
+    <style>
+      :root {
+        font-family: Arial, Helvetica, sans-serif;
+        color: #111;
+        background: #edf1f8;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+      }
+      .banner {
+        background: #405b91;
+        color: white;
+        text-align: center;
+        padding: 25px 12px 29px;
+        border-bottom: 8px solid #0924a0;
+      }
+      .banner h1 {
+        font-size: clamp(27px, 5vw, 53px);
+        font-weight: 900;
+        line-height: 1.05;
+        margin: 0;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+      .shell {
+        max-width: 1140px;
+        margin: 28px auto;
+        padding: 0 16px;
+      }
+      .controls {
+        background: white;
+        border: 1px solid #dce2ed;
+        border-radius: 14px;
+        padding: 20px;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 15px;
+        box-shadow: 0 4px 15px #18234b0c;
+      }
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+      }
+      .wide {
+        grid-column: 1/-1;
+      }
+      label {
+        font-weight: 700;
+        color: #253858;
+        font-size: 14px;
+      }
+      textarea,
+      input,
+      select {
+        font: inherit;
+        border: 1px solid #b9c5d8;
+        border-radius: 8px;
+        padding: 11px;
+        background: #fff;
+        width: 100%;
+      }
+      textarea {
+        resize: vertical;
+        min-height: 85px;
+      }
+      button {
+        border: 0;
+        border-radius: 8px;
+        background: #122a9c;
+        color: white;
+        padding: 12px 18px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      button.secondary {
+        background: #e7ecfa;
+        color: #17317c;
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      .board {
+        margin-top: 23px;
+        background: white;
+        padding: 22px;
+        border-radius: 14px;
+        border: 1px solid #dce2ed;
+        box-shadow: 0 4px 15px #18234b0c;
+      }
+      .board h2 {
+        font-size: 29px;
+        text-transform: uppercase;
+        margin: 0 0 8px;
+        font-weight: 900;
+      }
+      .hint {
+        font-size: 13px;
+        color: #53637e;
+        margin: 0 0 18px;
+      }
+      .table-scroll {
+        overflow-x: auto;
+        padding-bottom: 5px;
+      }
+      .cipher-table {
+        border-collapse: collapse;
+        width: 100%;
+        table-layout: fixed;
+        min-width: 670px;
+      }
+      .cipher-table th,
+      .cipher-table td {
+        border: 1px solid #858585;
+        height: 69px;
+        text-align: center;
+        vertical-align: middle;
+        font-weight: 900;
+        font-size: clamp(19px, 2.7vw, 30px);
+        width: 9%;
+      }
+      .cipher-table th {
+        color: #0b16a0;
+        background: #f8faff;
+      }
+      .cipher-table td.empty {
+        background: #060b9d;
+        color: transparent;
+      }
+      .cipher-table .corner {
+        background: #dbe5fb;
+      }
+      .cipher-table .row-key {
+        color: #0b16a0;
+        background: #f8faff;
+        width: 6%;
+      }
+      .meta {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-top: 15px;
+        color: #51607a;
+        font-size: 13px;
+      }
+      .key-info {
+        font-family: monospace;
+        word-break: break-word;
+      }
+      #notice {
+        font-size: 13px;
+        color: #a32525;
+        min-height: 16px;
+      }
+      @media (max-width: 650px) {
+        .controls {
+          grid-template-columns: 1fr;
+        }
+        .board {
+          padding: 12px;
+        }
+        .cipher-table th,
+        .cipher-table td {
+          height: 52px;
+        }
+        .shell {
+          margin-top: 16px;
+        }
+      }
+      .indicator-fields {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+      }
+      .indicator-fields input {
+        min-width: 0;
+      }
+      .indicator-summary {
+        font-size: 16px;
+        line-height: 1.8;
+        color: #10206c;
+        font-weight: 700;
+      }
+      .answer {
+        margin-top: 22px;
+        background: #fff;
+        border: 1px solid #dce2ed;
+        border-radius: 14px;
+        padding: 22px;
+        box-shadow: 0 4px 15px #18234b0c;
+      }
+      .answer h2 {
+        margin: 0 0 12px;
+        text-transform: uppercase;
+      }
+      .crypto {
+        font-family: Impact, "Arial Narrow", Arial, sans-serif;
+        font-size: clamp(23px, 3vw, 36px);
+        font-weight: 900;
+        letter-spacing: 1px;
+        line-height: 1.6;
+        overflow-wrap: anywhere;
+      }
+      .crypto .group {
+        display: inline-block;
+        margin-right: 0.65em;
+        white-space: nowrap;
+      }
+      .crypto .indicator {
+        color: #c00036;
+        text-decoration: underline;
+        text-decoration-thickness: 3px;
+        text-underline-offset: 4px;
+      }
+      .answer[hidden] {
+        display: none;
+      }
+      .explain {
+        color: #56647b;
+        font-size: 14px;
+      }
+      .indicator-list {
+        margin: 8px 0 0;
+        padding-left: 22px;
+        color: #12268a;
+        font-weight: 700;
+      }
+      @media (max-width: 650px) {
+        .indicator-fields {
+          grid-template-columns: 1fr 1fr 1fr;
+        }
+        .answer {
+          padding: 14px;
+        }
+      }
+      .key-panel {
+        grid-column: 1/-1;
+        background: #f4f7ff;
+        border: 1px solid #d6e0f7;
+        border-radius: 10px;
+        padding: 15px;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+      .key-panel .full {
+        grid-column: 1/-1;
+      }
+      .key-panel .tip {
+        font-size: 13px;
+        color: #53637e;
+        margin: 0;
+      }
+      .key-preview {
+        font-family: ui-monospace, Consolas, monospace;
+        background: white;
+        border: 1px solid #d9e2f1;
+        padding: 10px;
+        border-radius: 8px;
+        overflow-wrap: anywhere;
+      }
+      .mini {
+        font-size: 12px;
+        color: #51607a;
+      }
+      .hidden {
+        display: none !important;
+      }
+      @media (max-width: 650px) {
+        .key-panel {
+          grid-template-columns: 1fr;
+        }
+        .key-panel .full {
+          grid-column: 1;
+        }
+      }
+      .cipher-table .word-key {
+        color: #bd2836;
+        background: #f8faff;
+      }
+      .cipher-table .word-corner {
+        background: #dbe5fb;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="banner">
+      <h1>Transposição<br />por Quadros</h1>
+    </header>
+    <main class="shell">
+      <section class="controls" aria-label="Configuração">
+        <div class="field">
+          <label for="tipo">Tipo de chave</label
+          ><select id="tipo">
+            <option value="simples">Chave simples</option>
+            <option value="dupla">Chave dupla</option>
+          </select>
+        </div>
+        <div class="field" id="colunasBox">
+          <label for="colunas">Número de colunas</label
+          ><input id="colunas" type="number" min="2" max="20" value="10" />
+        </div>
+        <div class="key-panel">
+          <div class="field">
+            <label for="modoChave">Como definir a chave das colunas?</label
+            ><select id="modoChave">
+              <option value="aleatoria">Aleatória</option>
+              <option value="manual">Numeração manual</option>
+              <option value="palavra">Palavra-chave (ordem alfabética)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="modoLinhas"
+              >Como definir a chave das linhas? (chave dupla)</label
+            ><select id="modoLinhas">
+              <option value="aleatoria">Aleatória</option>
+              <option value="manual">Numeração manual</option>
+              <option value="palavra">Palavra-chave (ordem alfabética)</option>
+            </select>
+          </div>
+          <div class="field" id="manualColBox">
+            <label for="manualCol">Chave numérica das colunas</label
+            ><input id="manualCol" placeholder="Ex.: 8 5 3 1 2 7 4 6" />
+          </div>
+          <div class="field" id="palavraColBox">
+            <label for="palavraCol">Palavra-chave das colunas</label
+            ><input id="palavraCol" placeholder="Ex.: VOCABULO" />
+          </div>
+          <div class="field" id="manualLinBox">
+            <label for="manualLin">Chave numérica das linhas</label
+            ><input id="manualLin" placeholder="Ex.: 8 2 4 1 3 5 7 6" />
+          </div>
+          <div class="field" id="palavraLinBox">
+            <label for="palavraLin">Palavra-chave das linhas</label
+            ><input id="palavraLin" placeholder="Ex.: SEMAFORO" />
+          </div>
+          <div class="full tip">
+            Na palavra-chave, a letra alfabeticamente menor recebe o número 1.
+            Letras repetidas são numeradas da esquerda para a direita. A palavra
+            ou a chave manual define automaticamente o tamanho da dimensão
+            correspondente, mesmo quando sobram quadrados azuis. A chave manual
+            deve conter os números de 1 a N sem repetição.
+          </div>
+          <div class="full">
+            <label>Prévia das chaves</label>
+            <div class="key-preview" id="previewChaves"></div>
+          </div>
+        </div>
+        <div class="field wide">
+          <label for="mensagem">Mensagem original</label
+          ><textarea id="mensagem" placeholder="Digite a mensagem">
+COMBOIO PARTIU REG FAZ BOA ESPERANÇA GTA</textarea
+          >
+        </div>
+        <div class="field wide">
+          <label
+            >Indicadores de processo (inseridos sem substituir letras)</label
+          >
+          <div class="indicator-fields">
+            <div class="field">
+              <label for="indA">Indicador 1</label
+              ><input id="indA" value="A" maxlength="1" />
+            </div>
+            <div class="field">
+              <label for="grupoA">Grupo</label
+              ><input id="grupoA" type="number" min="1" value="2" />
+            </div>
+            <div class="field">
+              <label for="posA">Letra no grupo</label
+              ><input id="posA" type="number" min="1" max="5" value="2" />
+            </div>
+            <div class="field">
+              <label for="indC">Indicador 2</label
+              ><input id="indC" value="C" maxlength="1" />
+            </div>
+            <div class="field">
+              <label for="grupoC">Grupo</label
+              ><input id="grupoC" type="number" min="1" value="3" />
+            </div>
+            <div class="field">
+              <label for="posC">Letra no grupo</label
+              ><input id="posC" type="number" min="1" max="5" value="1" />
+            </div>
+          </div>
+        </div>
+        <div class="field wide">
+          <div class="actions">
+            <button id="nova">Gerar novas chaves</button
+            ><button class="secondary" id="csv">Baixar tabela CSV</button
+            ><button class="secondary" id="mostrar">Mostrar resposta</button>
+          </div>
+          <div id="notice" role="status"></div>
+        </div>
+      </section>
+      <section class="board">
+        <h2 id="tituloTabela">Chave simples</h2>
+        <p class="hint" id="descricao">
+          Os números azuis são a chave; as letras estão na ordem original, sem
+          transposição.
+        </p>
+        <div class="table-scroll">
+          <table
+            class="cipher-table"
+            id="tabela"
+            aria-label="Quadro da mensagem"
+          ></table>
+        </div>
+        <div class="meta">
+          <span id="contagem"></span><span class="key-info" id="chaves"></span>
+        </div>
+      </section>
+      <section class="answer" id="resposta" hidden>
+        <h2>Resposta · Criptograma</h2>
+        <p class="explain" id="metodo"></p>
+        <div class="indicator-summary">
+          Posição dos indicadores de processo:
+        </div>
+        <ul class="indicator-list" id="regras"></ul>
+        <p class="crypto" id="criptograma"></p>
+        <p class="explain">
+          Os indicadores aparecem em vermelho e sublinhados, como na referência.
+          Eles são inseridos nas posições selecionadas; as letras originais
+          avançam para a posição seguinte, sem serem perdidas.
+        </p>
+      </section>
+    </main>
+    <script>
+      const $ = (id) => document.getElementById(id);
+      const estado = { colunas: [], linhas: [], tipo: "simples", n: 10 };
+      function embaralhar(n) {
+        const a = Array.from({ length: n }, (_, i) => i + 1);
+        for (let i = a.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [a[i], a[j]] = [a[j], a[i]];
+        }
+        return a;
+      }
+      function mensagemLimpa() {
+        return $("mensagem")
+          .value.toLocaleUpperCase("pt-BR")
+          .replace(/\s+/g, "");
+      }
+      function letrasPalavra(valor) {
+        return valor
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .toUpperCase()
+          .replace(/[^A-Z]/g, "");
+      }
+      function chavePorPalavra(palavra, n) {
+        const letras = [...letrasPalavra(palavra)];
+        if (!letras.length) throw Error("Digite uma palavra-chave.");
+        const ordem = letras
+          .map((letra, i) => ({ letra, i }))
+          .sort((a, b) => a.letra.localeCompare(b.letra, "pt-BR") || a.i - b.i);
+        const numeros = Array(letras.length);
+        ordem.forEach((item, indice) => (numeros[item.i] = indice + 1));
+        return numeros;
+      }
+      function chaveManual(valor, n) {
+        const itens = valor
+          .trim()
+          .split(/[\s,;]+/)
+          .filter(Boolean);
+        const numeros = itens.map(Number);
+        if (
+          !numeros.length ||
+          numeros.some((x) => !Number.isInteger(x)) ||
+          [...numeros].sort((a, b) => a - b).some((x, i) => x !== i + 1)
+        )
+          throw Error(
+            `A chave manual deve ser uma permutação de 1 a ${numeros.length}, sem repetições.`,
+          );
+        return numeros;
+      }
+      function escolherChave(
+        modo,
+        manual,
+        palavra,
+        n,
+        atual,
+        regenerar = false,
+      ) {
+        if (modo === "manual") return chaveManual($(manual).value, n);
+        if (modo === "palavra") return chavePorPalavra($(palavra).value, n);
+        return regenerar || atual.length !== n ? embaralhar(n) : atual;
+      }
+      function atualizarCampos() {
+        const dupla = $("tipo").value === "dupla";
+        for (const [id, ativo] of [
+          ["manualColBox", $("modoChave").value === "manual"],
+          ["palavraColBox", $("modoChave").value === "palavra"],
+          ["manualLinBox", dupla && $("modoLinhas").value === "manual"],
+          ["palavraLinBox", dupla && $("modoLinhas").value === "palavra"],
+        ])
+          $(id).classList.toggle("hidden", !ativo);
+        $("modoLinhas").disabled = !dupla;
+        $("colunasBox").classList.toggle(
+          "hidden",
+          $("modoChave").value !== "aleatoria",
+        );
+      }
+      function novaChave() {
+        atualizarCampos();
+        // Chaves manuais e por palavra são sempre determinadas pelo usuário.
+        // Somente chaves aleatórias são regeneradas.
+        if ($("modoChave").value === "aleatoria") estado.colunas = [];
+        if ($("modoLinhas").value === "aleatoria") estado.linhas = [];
+        renderizar();
+      }
+      function celula(linha, tag, valor, classe = "") {
+        const c = document.createElement(tag);
+        c.textContent = valor;
+        if (classe) c.className = classe;
+        linha.appendChild(c);
+      }
+      function renderizar() {
+        atualizarCampos();
+        const texto = mensagemLimpa(),
+          dupla = $("tipo").value === "dupla";
+        try {
+          const desejado = Math.max(
+            2,
+            Math.min(20, Number($("colunas").value) || 10),
+          );
+          const colunas = escolherChave(
+            $("modoChave").value,
+            "manualCol",
+            "palavraCol",
+            desejado,
+            estado.colunas,
+          );
+          const n = colunas.length;
+          const minimoLinhas = Math.max(1, Math.ceil(texto.length / n));
+          const linhas = dupla
+            ? escolherChave(
+                $("modoLinhas").value,
+                "manualLin",
+                "palavraLin",
+                minimoLinhas,
+                estado.linhas,
+              )
+            : [];
+          const qtdLinhas = dupla ? linhas.length : minimoLinhas;
+          if (dupla && qtdLinhas * n < texto.length)
+            throw Error(
+              `A tabela definida comporta ${qtdLinhas * n} letras, mas a mensagem possui ${texto.length}. Aumente a chave das linhas ou reduza a mensagem.`,
+            );
+          estado.n = n;
+          estado.colunas = colunas;
+          estado.linhas = linhas;
+          estado.tipo = dupla ? "dupla" : "simples";
+          estado.qtdLinhas = qtdLinhas;
+          $("tituloTabela").textContent = dupla
+            ? "Chave dupla"
+            : "Chave simples";
+          $("descricao").textContent = dupla
+            ? "A chave superior numera as colunas; a chave lateral numera as linhas. A mensagem permanece na ordem original."
+            : "Os números azuis são a chave; as letras estão na ordem original, sem transposição.";
+          const tabela = $("tabela");
+          tabela.replaceChildren();
+          const head = document.createElement("thead");
+          const palavraCol =
+            $("modoChave").value === "palavra"
+              ? [...letrasPalavra($("palavraCol").value)]
+              : null;
+          const palavraLin =
+            dupla && $("modoLinhas").value === "palavra"
+              ? [...letrasPalavra($("palavraLin").value)]
+              : null;
+          if (palavraCol) {
+            const wr = document.createElement("tr");
+            if (dupla) {
+              celula(wr, "th", "", "word-corner");
+              if (palavraLin) celula(wr, "th", "", "word-corner");
+            }
+            palavraCol.forEach((letra) => celula(wr, "th", letra, "word-key"));
+            head.appendChild(wr);
+          }
+          const hr = document.createElement("tr");
+          if (dupla) {
+            if (palavraLin) celula(hr, "th", "", "corner");
+            celula(hr, "th", "", "corner");
+          }
+          colunas.forEach((x) => celula(hr, "th", String(x)));
+          head.appendChild(hr);
+          tabela.appendChild(head);
+          const body = document.createElement("tbody");
+          for (let r = 0; r < qtdLinhas; r++) {
+            const tr = document.createElement("tr");
+            if (dupla) {
+              if (palavraLin) celula(tr, "th", palavraLin[r], "word-key");
+              celula(tr, "th", String(linhas[r]), "row-key");
+            }
+            for (let c = 0; c < n; c++) {
+              const ch = texto[r * n + c];
+              celula(tr, "td", ch || "", ch ? "" : "empty");
+            }
+            body.appendChild(tr);
+          }
+          tabela.appendChild(body);
+          $("contagem").textContent =
+            `${texto.length} caracteres · ${qtdLinhas} linha(s) · ${Math.max(0, n * qtdLinhas - texto.length)} quadrado(s) azul(is)`;
+          $("chaves").textContent =
+            `Colunas: ${colunas.join(" ")}${dupla ? " | Linhas: " + linhas.join(" ") : ""}`;
+          $("previewChaves").textContent = $("chaves").textContent;
+          $("notice").textContent = "";
+          if (!$("resposta").hidden) mostrarResposta();
+        } catch (e) {
+          $("notice").textContent = e.message;
+          $("previewChaves").textContent =
+            "Preencha uma chave válida para visualizar a tabela.";
+          $("tabela").replaceChildren();
+          $("resposta").hidden = true;
+          $("mostrar").textContent = "Mostrar resposta";
+        }
+      }
+      function baixarCSV() {
+        const texto = mensagemLimpa(),
+          n = estado.n,
+          dupla = estado.tipo === "dupla",
+          rows = [];
+        const pc =
+          $("modoChave").value === "palavra"
+            ? [...letrasPalavra($("palavraCol").value)]
+            : null;
+        const pl =
+          dupla && $("modoLinhas").value === "palavra"
+            ? [...letrasPalavra($("palavraLin").value)]
+            : null;
+        if (pc) rows.push(dupla ? [...(pl ? ["", ""] : [""]), ...pc] : pc);
+        rows.push(
+          dupla
+            ? [...(pl ? ["", ""] : [""]), ...estado.colunas]
+            : [...estado.colunas],
+        );
+        const qtd = estado.qtdLinhas;
+        for (let r = 0; r < qtd; r++) {
+          const linha = Array.from(
+            { length: n },
+            (_, c) => texto[r * n + c] || "",
+          );
+          rows.push(
+            dupla
+              ? [...(pl ? [pl[r]] : []), estado.linhas[r], ...linha]
+              : linha,
+          );
+        }
+        const csv =
+          "\ufeff" +
+          rows
+            .map((row) =>
+              row
+                .map((v) => '"' + String(v).replace(/"/g, '""') + '"')
+                .join(";"),
+            )
+            .join("\r\n");
+        const url = URL.createObjectURL(
+          new Blob([csv], { type: "text/csv;charset=utf-8" }),
+        );
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `transposicao_${estado.tipo}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+      function mostrarResposta() {
+        const texto = mensagemLimpa(),
+          n = estado.n,
+          dupla = estado.tipo === "dupla";
+        if (!texto) {
+          $("notice").textContent =
+            "Digite uma mensagem para gerar o criptograma.";
+          return;
+        }
+        const linhas = Array.from({ length: estado.qtdLinhas }, (_, r) =>
+          Array.from({ length: n }, (_, c) => texto[r * n + c] || ""),
+        );
+        // Chave simples: colunas 1..N, cada uma lida de cima para baixo.
+        // Chave dupla: colunas 1..N; dentro de cada coluna, linhas 1..M.
+        const ordemColunas = Array.from({ length: n }, (_, i) => i).sort(
+          (a, b) => estado.colunas[a] - estado.colunas[b],
+        );
+        const ordemLinhas = Array.from(
+          { length: linhas.length },
+          (_, i) => i,
+        ).sort((a, b) => (dupla ? estado.linhas[a] - estado.linhas[b] : a - b));
+        const chars = [];
+        for (const c of ordemColunas)
+          for (const r of ordemLinhas)
+            if (linhas[r][c]) chars.push(linhas[r][c]);
+        const entradas = [
+          {
+            s: $("indA").value.toLocaleUpperCase("pt-BR").trim(),
+            g: Number($("grupoA").value),
+            p: Number($("posA").value),
+          },
+          {
+            s: $("indC").value.toLocaleUpperCase("pt-BR").trim(),
+            g: Number($("grupoC").value),
+            p: Number($("posC").value),
+          },
+        ];
+        // Os indicadores ocupam posições fixas no criptograma FINAL.
+        // Inserir não consome nem substitui letras: a letra que estava ali avança.
+        const marcados = new Set(),
+          regras = $("regras");
+        regras.replaceChildren();
+        const posicoes = new Set();
+        for (const e of entradas) {
+          const idx = (e.g - 1) * 5 + e.p - 1;
+          if (
+            [...e.s].length !== 1 ||
+            !Number.isInteger(e.g) ||
+            e.g < 1 ||
+            !Number.isInteger(e.p) ||
+            e.p < 1 ||
+            e.p > 5 ||
+            posicoes.has(idx)
+          ) {
+            $("notice").textContent =
+              "Confira os indicadores: use uma letra por indicador e posições diferentes (1 a 5) nos grupos.";
+            return;
+          }
+          e.idx = idx;
+          posicoes.add(idx);
+          const li = document.createElement("li");
+          li.textContent = `“${e.s}”: ${e.p}ª letra do ${e.g}º grupo`;
+          regras.appendChild(li);
+        }
+        // Índices relativos ao texto FINAL: inserções anteriores deslocam letras,
+        // mas não alteram o destino dos outros indicadores.
+        entradas.sort((a, b) => a.idx - b.idx);
+        for (const e of entradas) {
+          if (e.idx > chars.length) {
+            $("notice").textContent =
+              `Não há caracteres suficientes para inserir “${e.s}” no ${e.g}º grupo, posição ${e.p}.`;
+            return;
+          }
+          chars.splice(e.idx, 0, e.s);
+          marcados.add(e.idx);
+        }
+        const destino = $("criptograma");
+        destino.replaceChildren();
+        for (let i = 0; i < chars.length; i += 5) {
+          const grupo = document.createElement("span");
+          grupo.className = "group";
+          for (let j = i; j < Math.min(i + 5, chars.length); j++) {
+            const el = document.createElement("span");
+            el.textContent = chars[j];
+            if (marcados.has(j)) el.className = "indicator";
+            grupo.appendChild(el);
+          }
+          destino.appendChild(grupo);
+        }
+        $("metodo").textContent = dupla
+          ? "Chave dupla: colunas em ordem numérica e, dentro delas, linhas em ordem numérica."
+          : "Chave simples: colunas em ordem numérica, lidas de cima para baixo.";
+        $("resposta").hidden = false;
+        $("mostrar").textContent = "Ocultar resposta";
+        $("notice").textContent = "";
+      }
+      $("mostrar").addEventListener("click", () => {
+        if (!$("resposta").hidden) {
+          $("resposta").hidden = true;
+          $("mostrar").textContent = "Mostrar resposta";
+        } else mostrarResposta();
+      });
+      for (const id of ["indA", "grupoA", "posA", "indC", "grupoC", "posC"])
+        $(id).addEventListener("input", () => {
+          if (!$("resposta").hidden) mostrarResposta();
+        });
+      for (const id of [
+        "modoChave",
+        "modoLinhas",
+        "manualCol",
+        "manualLin",
+        "palavraCol",
+        "palavraLin",
+      ])
+        $(id).addEventListener(
+          id.startsWith("modo") ? "change" : "input",
+          renderizar,
+        );
+      $("tipo").addEventListener("change", renderizar);
+      $("mensagem").addEventListener("input", renderizar);
+      $("colunas").addEventListener("change", renderizar);
+      $("nova").addEventListener("click", novaChave);
+      $("csv").addEventListener("click", baixarCSV);
+      novaChave();
+    </script>
+  </body>
+</html>
